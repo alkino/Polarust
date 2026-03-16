@@ -1,0 +1,248 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, sans-serif;
+    background: #f5f5f0;
+    color: #333;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+
+header {
+    background: #1a1a2e;
+    color: #fff;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0 2rem;
+    overflow: hidden;
+}
+
+header img.cover {
+    height: 80px;
+    object-fit: cover;
+    object-position: center;
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-size: 1.4rem;
+    margin: 0;
+}
+
+.subtitle {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin-top: .2rem;
+}
+
+.back {
+    color: #aaa;
+    text-decoration: none;
+    font-size: .9rem;
+}
+
+.meta {
+    color: #ccc;
+    margin: .5rem 0;
+}
+
+.map-link {
+    display: inline-block;
+    margin-top: .5rem;
+    color: #7ecfc0;
+}
+
+/* ── Carousel ─────────────────────────────────────────── */
+
+.carousel-wrapper {
+    position: relative;
+    padding: 1rem 0;
+}
+
+.carousel {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 1rem 2rem 1.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.carousel::-webkit-scrollbar { height: 6px; }
+.carousel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,.9);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    z-index: 10;
+}
+
+.carousel-btn.prev { left: .5rem; }
+.carousel-btn.next { right: .5rem; }
+
+/* ── Cards ────────────────────────────────────────────── */
+
+.card {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: transform .2s;
+}
+
+.card:hover { transform: translateY(-4px); }
+
+.card-img {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.card-body  { padding: 1rem; }
+.card-date  { font-size: .8rem; color: #888; margin-bottom: .3rem; }
+.card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+.card-location { font-size: .9rem; color: #555; }
+.card-count { font-size: .8rem; color: #888; margin-top: .3rem; }
+
+/* ── Map ──────────────────────────────────────────────── */
+
+#map {
+    height: 500px;
+    margin: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.map-marker {
+	width: 14px;
+	height: 14px;
+	background: #e74c3c;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	box-shadow: 0 1px 4px rgba(0,0,0,.4);
+	transition: transform .15s;
+}
+
+/* ── Step page ────────────────────────────────────────── */
+
+main {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: auto;
+}
+
+.description {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+}
+
+/* ── Photo carousel (page step) ──────────────────────── */
+
+.photo-carousel {
+    position: relative;
+    width: 100%;
+    max-width: 1200;
+    margin: 0 auto 2rem;
+}
+
+.pc-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    border-radius: 12px;
+    scrollbar-width: none;
+    padding: 0 20%;
+    gap: 1rem;
+}
+
+.pc-track::-webkit-scrollbar { display: none; }
+
+.pc-slide {
+    flex: 0 0 80%;
+    scroll-snap-align: center;
+    width: 80%;
+    max-height: 65vh;
+    object-fit: contain;
+    background: #111;
+    border-radius: 12px;
+    opacity: 0.4;
+    transform: scale(0.6);
+    transition: opacity .3s, transform .3s;
+    cursor: pointer;
+}
+
+.pc-slide.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.pc-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,.45);
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    padding: .4rem .9rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background .2s;
+    z-index: 1;
+}
+
+.pc-btn:hover { background: rgba(0,0,0,.75); }
+.pc-prev { left:  .75rem; }
+.pc-next { right: .75rem; }
+
+.pc-counter {
+    text-align: center;
+    color: #888;
+    font-size: .85rem;
+    margin-top: .5rem;
+}
+
+/* ── Step navigation ──────────────────────────────────── */
+
+.step-nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem;
+    max-width: 700px;
+    margin: auto;
+}
+
+.step-nav a {
+    color: #1a1a2e;
+    font-weight: 600;
+    text-decoration: none;
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>
+    <a class="back" href="../index.html">← Retour au voyage</a>
+    <div>
+      <h1>{{ title }}</h1>
+      <p class="meta">{{ date }}{% if location %} · {{ location }}{% endif %}</p>
+      {% if map_link %}
+      <a class="map-link" href="{{ map_link }}" target="_blank">🗺 Voir sur la carte</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main>
+    {% if photos %}
+      <div class="photo-carousel">
+      <button class="pc-btn pc-prev" onclick="pcMove(-1)">‹</button>
+      <div class="pc-track" id="pc-track">
+        {% for photo in photos %}
+        <img class="pc-slide"
+             src="../photos/{{ photo }}"
+             alt="photo {{ loop.index }}"
+             loading="lazy">
+        {% endfor %}
+      </div>
+      <button class="pc-btn pc-next" onclick="pcMove(+1)">›</button>
+      <p class="pc-counter" id="pc-counter">1 / {{ photos|length }}</p>
+      </div>
+    {% endif %}
+
+    {% if description %}
+    <div class="description">{{ description }}</div>
+    {% endif %}
+  </main>
+
+  <nav class="step-nav">
+    {% if prev %}
+    <a href="step_{{ prev.id }}.html">← {{ prev.name }}</a>
+    {% else %}<span></span>{% endif %}
+    {% if next %}
+    <a href="step_{{ next.id }}.html">{{ next.name }} →</a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+
+  <script>
+    const track   = document.getElementById('pc-track');
+    const counter = document.getElementById('pc-counter');
+    const slides  = document.querySelectorAll('.pc-slide');
+    const total   = {{ photos|length }};
+    let current   = 0;
+
+    function updateActive() {
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        counter.textContent = (current + 1) + ' / ' + total;
+    }
+
+    function scrollToSlide(index) {
+            slides[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    function pcMove(dir) {
+        current = (current + dir + total) % total;
+        scrollToSlide(current);
+        updateActive();
+    }
+
+    slides.forEach((slide, i) => {
+        slide.addEventListener('click', () => {
+            current = i;
+            scrollToSlide(current);
+            updateActive();
+        });
+    });
+
+    track.addEventListener('scrollend', () => {
+            const center = track.scrollLeft + track.clientWidth / 2;
+            current = [...slides].reduce((closest, slide, i) => {
+                    const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+                    const prevCenter = slides[closest].offsetLeft + slides[closest].offsetWidth / 2;
+                    return Math.abs(slideCenter - center) < Math.abs(prevCenter - center) ? i : closest;
+            }, 0);
+        updateActive();
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight') pcMove(+1);
+        if (e.key === 'ArrowLeft')  pcMove(-1);
+    });
+
+    updateActive();
+  </script>
+</body>
+</html>
