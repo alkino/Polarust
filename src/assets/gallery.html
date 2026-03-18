@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ trip.name }}</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+  <header>
+    {% if cover_url %}
+    <img class="cover" src="{{ cover_url }}" alt="cover">
+    {% endif %}
+    <div>
+      <h1>🌍 {{ trip.name }}</h1>
+      <p class="subtitle">{{ steps }} étapes</p>
+    </div>
+  </header>
+
+{% block content %}
+<h1>Galerie</h1>
+<div class="gallery-grid">
+  {% for p in photos %}
+  <a href="steps/step_{{ p.step_id }}.html" class="gallery-item">
+    <img src="{{ p.thumb }}" alt="{{ p.step_name }}" loading="lazy">
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+</body>
+</html>

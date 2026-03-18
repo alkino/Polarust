@@ -73,7 +73,7 @@ pub fn has_step_dirs(dir: &Path) -> bool {
 }
 
 pub fn step_dir_name(step: &Step) -> String {
-    match &step.display_slug {
+    match &step.slug {
         Some(slug) => format!("{}_{}", slug, step.id),
         None => format!("step_{}", step.id),
     }

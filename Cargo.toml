@@ -11,3 +11,6 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 fs_extra = "1"
 minijinja = { version = "2", features = ["loader"] }
+turbojpeg = { version = "1", features = ["image"] }
+image = "0.25"
+rayon = "1.10"

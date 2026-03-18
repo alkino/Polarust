@@ -4,17 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
-  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../../style.css">
 </head>
 <body>
   <header>
+    {% if cover_url %}
+    <a href="../index.html">
+      <img class="cover" src="{{ cover_url }}" alt="cover">
+    </a>
+    {% else %}
     <a class="back" href="../index.html">← Retour au voyage</a>
-    <div>
-      <h1>{{ title }}</h1>
-      <p class="meta">{{ date }}{% if location %} · {{ location }}{% endif %}</p>
-      {% if map_link %}
-      <a class="map-link" href="{{ map_link }}" target="_blank">🗺 Voir sur la carte</a>
-      {% endif %}
+    {% endif %}
+    <div class="header-titles">
+      <div class="header-main">
+        <h1>🌍 {{ trip.name }}</h1>
+        <p class="subtitle">{{ steps_len }} étapes</p>
+      </div>
+      <div class="header-step">
+        <h2>{{ title }}</h2>
+        <p class="meta">{{ date }}{% if location %} · {{ location }}{% endif %}</p>
+      </div>
     </div>
   </header>
 
@@ -49,6 +58,7 @@
     {% else %}<span></span>{% endif %}
   </nav>
 
+  {% if photos %}
   <script>
     const track   = document.getElementById('pc-track');
     const counter = document.getElementById('pc-counter');
@@ -96,5 +106,9 @@
 
     updateActive();
   </script>
+  {% endif %}
+        {% if map_link %}
+        <a class="map-link" href="{{ map_link }}" target="_blank">🗺 Voir sur la carte</a>
+        {% endif %}
 </body>
 </html>

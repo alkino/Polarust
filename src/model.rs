@@ -15,6 +15,7 @@ D: Deserializer<'de>,
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Trip {
     pub id: u64,
+    pub slug: String,
     pub name: String,
     #[serde(default, deserialize_with = "deserialize_timestamp_opt")]
     pub start_date: Option<i64>,
@@ -34,7 +35,7 @@ pub struct Step {
     #[serde(deserialize_with = "deserialize_timestamp")]
     pub start_time: i64,
     pub location: Option<Location>,
-    pub display_slug: Option<String>,
+    pub slug: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -66,4 +67,12 @@ pub struct GpsPoint {
 #[derive(Debug, Deserialize)]
 pub struct LocationsFile {
     pub locations: Vec<GpsPoint>,
+}
+
+#[derive(Serialize)]
+pub struct GalleryPhoto {
+    pub src: String,
+    pub thumb: String,
+    pub step_id: u64,
+    pub step_name: String,
 }
