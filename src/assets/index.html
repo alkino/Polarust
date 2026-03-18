@@ -31,7 +31,7 @@
          onmouseleave="closeMarker({{ es.step.id }})">
         <div class="card-img" style="background-image: url('{{ es.thumb }}')"></div>
         <div class="card-body">
-          <div class="card-date">{{ es.date }}</div>
+          <div class="card-date">{{ es.date | format_date }}</div>
           <h2 class="card-title">{{ es.step.display_name | default("Étape sans titre") }}</h2>
           <p class="card-location">📍 {{ es.location }}</p>
           <p class="card-count">🖼 {{ es.photos|length }} photo(s)</p>

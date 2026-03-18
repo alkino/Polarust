@@ -86,8 +86,10 @@
       <div class="trip-card-body">
         <h2>{{ trip.name }}</h2>
         <div class="trip-meta">
-          {% if trip.start_date %}{{ start_date_fmt }}{% endif %}
-          · {{ trip.all_steps | length }} étapes
+          {% if trip.start_date %}{{ trip.start_date | format_date }}{% endif %} ·
+          {% if trip.end_date %}{{ trip.end_date | format_date }}{% endif %}
+          <br />
+          {{ trip.all_steps | length }} étapes
           <br />
         </div>
         {% if trip.summary %}

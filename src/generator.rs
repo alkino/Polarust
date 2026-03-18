@@ -14,7 +14,7 @@ use crate::model::{Trip, EnrichedStep, GpsPoint, GalleryPhoto};
 struct StepContext<'a> {
     step: &'a crate::model::Step,
     thumb: String,
-    date: String,
+    date: i64,
     location: String,
     photos: &'a Vec<String>,
 }
@@ -60,6 +60,15 @@ impl SiteGenerator {
             include_str!("assets/gallery.html").into()
         ).unwrap();
 
+        // Register a filter to format timestamp in the template directly
+        env.add_filter("format_date", |ts: i64| -> String {
+            Utc.timestamp_opt(ts, 0)
+                .single()
+                .map(|dt: DateTime<Utc>| dt.format("%d %B %Y").to_string())
+                .unwrap_or_else(|| "?".to_string())
+        });
+
+
         Self {
             output_dir: output_dir.to_path_buf(),
             archive_root: archive_root.to_path_buf(),
@@ -98,7 +107,7 @@ impl SiteGenerator {
             thumb: es.photos.first()
                 .map(|p| format!("thumbnails/{}", p))
                 .unwrap_or_default(),
-            date: format_ts(es.step.start_time),
+            date: es.step.start_time,
             location: es.step.location.as_ref()
                 .and_then(|l| l.name.as_deref())
                 .unwrap_or("Lieu inconnu")
@@ -176,7 +185,7 @@ impl SiteGenerator {
         let html = tmpl.render(context! {
             trip        => trip,
             title       => es.step.display_name.as_deref().unwrap_or("Étape sans titre"),
-            date        => format_ts(es.step.start_time),
+            date        => es.step.start_time,
             location    => es.step.location.as_ref().and_then(|l| l.name.as_deref()).unwrap_or(""),
             description => es.step.description.as_deref().unwrap_or(""),
             photos      => &es.photos,
@@ -268,13 +277,6 @@ impl SiteGenerator {
         })?;
         Ok(())
     }
-}
-
-fn format_ts(ts: i64) -> String {
-    Utc.timestamp_opt(ts, 0)
-        .single()
-        .map(|dt: DateTime<Utc>| dt.format("%d %B %Y").to_string())
-        .unwrap_or_else(|| "Date inconnue".to_string())
 }
 
 fn escape_html(s: &str) -> String {
