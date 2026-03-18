@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use anyhow::{Context, Result};
 
-use crate::model::{Trip, EnrichedStep, Step, LocationsFile, GpsPoint};
+use crate::model::{Trip, EnrichedStep, Step, LocationsFile, GpsPoint, MediaKind, Media};
 
 pub fn parse_trip(archive_dir: &Path) -> Result<Trip> {
     // Cherche trip.json dans le premier sous-dossier ou à la racine
@@ -39,11 +39,11 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
 
     let enriched = trip.steps.iter().map(|step| {
         let dir_name = step_dir_name(step);
-        let photos = load_step_photos(&root, step);
+        let media = load_step_media(&root, step);
         EnrichedStep {
             dir_name,
             step: step.clone(),
-            photos,
+            media,
         }
     }).collect();
 
@@ -79,36 +79,44 @@ pub fn step_dir_name(step: &Step) -> String {
     }
 }
 
-fn load_step_photos(root: &Path, step: &Step) -> Vec<String> {
+fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
     let dir_name = step_dir_name(step);
-    let photo_dir = root.join(&dir_name).join("photos");
 
-    if !photo_dir.exists() {
-        return vec![];
+    let mut media: Vec<(PathBuf, MediaKind)> = vec![];
+
+    let photo_dir = root.join(&dir_name).join("photos");
+    if photo_dir.exists() {
+        let mut photos: Vec<_> = fs::read_dir(&photo_dir)
+            .unwrap_or_else(|_| panic!("Lecture {:?}", photo_dir))
+            .flatten()
+            .map(|e| (e.path(), MediaKind::Photo))
+            .collect();
+        media.append(&mut photos);
     }
 
-    let mut photos: Vec<_> = fs::read_dir(&photo_dir)
-        .unwrap_or_else(|_| panic!("Lecture {:?}", photo_dir))
-        .flatten()
-        .filter(|e| is_image(&e.path()))
-        .map(|e| e.path())
-        .collect();
+    let video_dir = root.join(&dir_name).join("videos");
+    if video_dir.exists() {
+        let mut videos: Vec<_> = fs::read_dir(&video_dir)
+            .unwrap_or_else(|_| panic!("Lecture {:?}", video_dir))
+            .flatten()
+            .map(|e| (e.path(), MediaKind::Video))
+            .collect();
+        media.append(&mut videos);
+    }
 
-    photos.sort_by(|a, b| {
+    media.sort_by(|(a, _), (b, _)| {
         a.file_name().unwrap_or_default()
             .cmp(b.file_name().unwrap_or_default())
     });
 
-    photos.iter()
-        .map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())
-        .collect()
-}
-
-fn is_image(path: &Path) -> bool {
-    matches!(
-        path.extension().and_then(|e| e.to_str()),
-        Some("jpg" | "jpeg" | "png" | "webp" | "JPG" | "JPEG")
-    )
+    media.into_iter()
+        .map(|(p, kind)| Media {
+            kind: kind,
+            relative_path: p.file_name().unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+    })
+    .collect()
 }
 
 pub fn parse_locations(archive_dir: &Path) -> Result<Vec<GpsPoint>> {

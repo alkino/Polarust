@@ -10,21 +10,31 @@
 <body>
   <header>
     {% if cover_url %}
-    <img class="cover" src="{{ cover_url }}" alt="cover">
+    <a href="index.html">
+      <img class="cover" src="{{ cover_url }}" alt="cover">
+    </a>
     {% endif %}
     <div>
       <h1>🌍 {{ trip.name }}</h1>
-      <p class="subtitle">{{ steps }} étapes</p>
+      <p class="subtitle">{{ steps|length }} étapes</p>
     </div>
   </header>
 
 {% block content %}
 <h1>Galerie</h1>
 <div class="gallery-grid">
-  {% for p in photos %}
-  <a href="steps/step_{{ p.step_id }}.html" class="gallery-item">
-    <img src="{{ p.thumb }}" alt="{{ p.step_name }}" loading="lazy">
+  {% for s in steps %}
+  {% for m in s.media %}
+  <a href="steps/step_{{ s.step.id }}.html" class="gallery-item">
+    {% if m.kind == "photo" %}
+      <img src="thumbnails/{{ m.relative_path }}" alt="{{ s.step.display_name }}" loading="lazy">
+    {% elif m.kind == "video" %}
+      <video controls preload="metadata" playsinline>
+        <source src="media/{{ m.relative_path }}">
+      </video>
+    {% endif %}
   </a>
+  {% endfor %}
   {% endfor %}
 </div>
 {% endblock %}

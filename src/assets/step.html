@@ -28,19 +28,23 @@
   </header>
 
   <main>
-    {% if photos %}
+    {% if media %}
       <div class="photo-carousel">
       <button class="pc-btn pc-prev" onclick="pcMove(-1)">‹</button>
       <div class="pc-track" id="pc-track">
-        {% for photo in photos %}
-        <img class="pc-slide"
-             src="../photos/{{ photo }}"
-             alt="photo {{ loop.index }}"
-             loading="lazy">
+        {% for m in media %}
+        {% if m.kind == "photo" %}
+        <img class="pc-slide" src="../media/{{ m.relative_path }}"
+             alt="photo {{ loop.index }}" loading="lazy">
+        {% elif m.kind == "video" %}
+        <video class="pc-slide" controls preload="metadata" playsinline>
+          <source src="../media/{{ m.relative_path }}">
+        </video>
+        {% endif %}
         {% endfor %}
       </div>
       <button class="pc-btn pc-next" onclick="pcMove(+1)">›</button>
-      <p class="pc-counter" id="pc-counter">1 / {{ photos|length }}</p>
+      <p class="pc-counter" id="pc-counter">1 / {{ media|length }}</p>
       </div>
     {% endif %}
 
@@ -58,12 +62,12 @@
     {% else %}<span></span>{% endif %}
   </nav>
 
-  {% if photos %}
+  {% if media %}
   <script>
     const track   = document.getElementById('pc-track');
     const counter = document.getElementById('pc-counter');
     const slides  = document.querySelectorAll('.pc-slide');
-    const total   = {{ photos|length }};
+    const total   = {{ media|length }};
     let current   = 0;
 
     function updateActive() {

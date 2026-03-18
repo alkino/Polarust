@@ -34,7 +34,7 @@
           <div class="card-date">{{ es.date | format_date }}</div>
           <h2 class="card-title">{{ es.step.display_name | default("Étape sans titre") }}</h2>
           <p class="card-location">📍 {{ es.location }}</p>
-          <p class="card-count">🖼 {{ es.photos|length }} photo(s)</p>
+          <p class="card-count">🖼 {{ es.media|length }} media</p>
         </div>
       </a>
       {% endfor %}

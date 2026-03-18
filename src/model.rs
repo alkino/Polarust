@@ -47,11 +47,24 @@ pub struct Location {
     pub country_code: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MediaKind {
+    Photo,
+    Video,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Media {
+    pub kind: MediaKind,
+    pub relative_path: String,
+}
+
 /// Représente un step enrichi avec ses photos (post-parsing)
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct EnrichedStep {
     pub step: Step,
-    pub photos: Vec<String>,  // chemins relatifs vers output/photos/
+    pub media: Vec<Media>,  // chemins relatifs vers output/photos/
     pub dir_name: String,
 }
 
@@ -67,12 +80,4 @@ pub struct GpsPoint {
 #[derive(Debug, Deserialize)]
 pub struct LocationsFile {
     pub locations: Vec<GpsPoint>,
-}
-
-#[derive(Serialize)]
-pub struct GalleryPhoto {
-    pub src: String,
-    pub thumb: String,
-    pub step_id: u64,
-    pub step_name: String,
 }

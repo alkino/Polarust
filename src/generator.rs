@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::fs;
-use anyhow::Result;
+use anyhow::{Result, Context};
 use chrono::{DateTime, Utc, TimeZone};
 use minijinja::{Environment, context };
 use serde::Serialize;
 use image::imageops::FilterType;
 use rayon::prelude::*;
 
-use crate::model::{Trip, EnrichedStep, GpsPoint, GalleryPhoto};
+use crate::model::{Trip, EnrichedStep, GpsPoint, Media, MediaKind};
 
 // Structs de contexte pour les templates
 #[derive(Serialize)]
@@ -16,7 +16,7 @@ struct StepContext<'a> {
     thumb: String,
     date: i64,
     location: String,
-    photos: &'a Vec<String>,
+    media: &'a Vec<Media>,
 }
 
 #[derive(Serialize)]
@@ -88,7 +88,7 @@ impl SiteGenerator {
 
     pub fn generate_trip(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
         self.prepare_dirs(&trip)?;
-        self.copy_photos(trip, steps)?;
+        self.copy_media(trip, steps)?;
         self.write_gallery_page(trip, steps)?;
         self.write_css()?;
         self.write_index(trip, steps, gps)?;
@@ -97,22 +97,22 @@ impl SiteGenerator {
             let next = steps.get(i + 1);
             self.write_step_page(&trip, &steps[i], prev, next, steps.len())?;
         }
-        println!("✅ Site généré dans {:?}", self.output_dir.join(&trip.slug));
+        tracing::info!("✅ Site généré dans {:?}", self.output_dir.join(&trip.slug));
         Ok(())
     }
 
     fn write_index(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
         let steps_ctx: Vec<StepContext> = steps.iter().map(|es| StepContext {
             step: &es.step,
-            thumb: es.photos.first()
-                .map(|p| format!("thumbnails/{}", p))
+            thumb: es.media.iter().find(|m| matches!(m.kind, MediaKind::Photo))
+                .map(|p| format!("thumbnails/{}", p.relative_path))
                 .unwrap_or_default(),
             date: es.step.start_time,
             location: es.step.location.as_ref()
                 .and_then(|l| l.name.as_deref())
                 .unwrap_or("Lieu inconnu")
                 .to_string(),
-            photos: &es.photos,
+            media: &es.media,
         }).collect();
 
         let map_markers: Vec<MapMarker> = steps.iter().filter_map(|es| {
@@ -122,8 +122,8 @@ impl SiteGenerator {
                 lat: loc.lat?,
                 lon: loc.lon?,
                 title: escape_html(es.step.display_name.as_deref().unwrap_or("?")),
-                thumb: es.photos.first()
-                    .map(|p| format!("thumbnails/{}", p))
+                thumb: es.media.iter().find(|m| matches!(m.kind, MediaKind::Photo))
+                    .map(|p| format!("thumbnails/{}", p.relative_path))
                     .unwrap_or_default(),
             })
         }).collect();
@@ -188,7 +188,7 @@ impl SiteGenerator {
             date        => es.step.start_time,
             location    => es.step.location.as_ref().and_then(|l| l.name.as_deref()).unwrap_or(""),
             description => es.step.description.as_deref().unwrap_or(""),
-            photos      => &es.photos,
+            media       => &es.media,
             map_link    => map_link,
             prev        => prev.map(make_nav),
             next        => next.map(make_nav),
@@ -204,16 +204,6 @@ impl SiteGenerator {
     }
 
     fn write_gallery_page(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
-        let photos: Vec<GalleryPhoto> = steps.iter().flat_map(|es| {
-            let name = es.step.display_name.clone().unwrap_or_else(|| "Étape".into());
-            es.photos.iter().map(move |p| GalleryPhoto {
-                src: format!("photos/{p}"),
-                thumb: format!("thumbnails/{p}"),
-                step_id: es.step.id,
-                step_name: name.clone(),
-            })
-        }).collect();
-
         let cover_url = trip.cover_photo_path.as_deref()
             .unwrap_or_default();
 
@@ -221,9 +211,8 @@ impl SiteGenerator {
         let html = tmpl.render(context! {
             trip => trip,
             title => "Galerie",
-            photos => &photos,
             cover_url => cover_url,
-            steps => steps.len(),
+            steps => steps,
         })?;
 
         fs::write(self.output_dir.join(&trip.slug).join("gallery.html"), html)?;
@@ -236,40 +225,49 @@ impl SiteGenerator {
     }
 
     fn prepare_dirs(&self, trip: &Trip) -> Result<()> {
-        fs::create_dir_all(self.output_dir.join(&trip.slug).join("photos"))?;
+        fs::create_dir_all(self.output_dir.join(&trip.slug).join("media"))?;
         fs::create_dir_all(self.output_dir.join(&trip.slug).join("thumbnails"))?;
         fs::create_dir_all(self.output_dir.join(&trip.slug).join("steps"))?;
         Ok(())
     }
 
-    fn copy_photos(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
-        eprintln!("    📷 Copying photos");
+    fn copy_media(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
+        tracing::info!("    📷 Copying media");
         let thumb_dir = self.output_dir.join(&trip.slug).join("thumbnails");
 
         steps.par_iter().try_for_each(|es| -> Result<()> {
             let trip_key = format!("{}_{}", trip.slug, trip.id);
-            let src_dir = self.archive_root.join(trip_key).join(&es.dir_name).join("photos");
-            es.photos.par_iter().try_for_each(|photo| -> Result<()> {
-                let src = src_dir.join(photo);
-                let dst = self.output_dir.join(&trip.slug).join("photos").join(photo);
-                let thumb = thumb_dir.join(photo);
+
+            let src_photos = self.archive_root.join(&trip_key).join(&es.dir_name).join("photos");
+            let src_videos = self.archive_root.join(&trip_key).join(&es.dir_name).join("videos");
+            let dst = self.output_dir.join(&trip.slug).join("media");
+            es.media.par_iter().try_for_each(|media| -> Result<()> {
+                let src = match media.kind {
+                    MediaKind::Photo => src_photos.clone(),
+                    MediaKind::Video => src_videos.clone(),
+                };
+
+                let src = src.join(&media.relative_path);
+                let dst = dst.join(&media.relative_path);
 
                 if src.exists() {
                     if !dst.exists() {
                         fs::copy(&src, &dst)?;
                     }
-                    if !thumb.exists() {
-                        let data = fs::read(&src)?;
-                        let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
-                        let resized = image::DynamicImage::ImageRgb8(img)
-                            .resize(400, 300, FilterType::Triangle);
-                        let rgb = resized.to_rgb8();
-                        let compressed = turbojpeg::compress_image(
-                            &rgb,
-                            75,
-                            turbojpeg::Subsamp::Sub2x2
-                        )?;
-                        fs::write(&thumb, compressed)?;
+
+                    if matches!(media.kind, MediaKind::Photo) {
+                        let thumb = thumb_dir.join(&media.relative_path);
+                        if !thumb.exists() {
+                            let data = fs::read(&src)?;
+                            let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
+                            let resized = image::DynamicImage::ImageRgb8(img)
+                                .resize(400, 300, FilterType::Triangle);
+                            let rgb = resized.to_rgb8();
+                            let compressed = turbojpeg::compress_image(
+                                &rgb, 75, turbojpeg::Subsamp::Sub2x2
+                            )?;
+                            fs::write(&thumb, compressed)?;
+                        }
                     }
                 }
                 Ok(())

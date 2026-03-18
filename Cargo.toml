@@ -14,3 +14,5 @@ minijinja = { version = "2", features = ["loader"] }
 turbojpeg = { version = "1", features = ["image"] }
 image = "0.25"
 rayon = "1.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
