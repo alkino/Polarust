@@ -27,6 +27,15 @@
     </div>
   </header>
 
+  <nav class="step-nav">
+    {% if prev %}
+    <a href="step_{{ prev.id }}.html">← {{ prev.name }}</a>
+    {% else %}<span></span>{% endif %}
+    {% if next %}
+    <a href="step_{{ next.id }}.html">{{ next.name }} →</a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+
   <main>
     {% if media %}
       <div class="photo-carousel">
