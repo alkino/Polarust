@@ -5,31 +5,15 @@ use std::path::{Path, PathBuf};
 use crate::model::{EnrichedStep, GpsPoint, LocationsFile, Media, MediaKind, Step, Trip};
 
 pub fn parse_trip(archive_dir: &Path) -> Result<Trip> {
-    // Cherche trip.json dans le premier sous-dossier ou à la racine
-    let json_path =
-        find_trip_json(archive_dir).context("Impossible de trouver trip.json dans l'archive")?;
+    let json_path = {
+        let p = archive_dir.join("trip.json");
+        p.exists().then_some(p)
+    }.context("impossible de trouver 'trip.json'.")?;
 
     let content =
         fs::read_to_string(&json_path).with_context(|| format!("Lecture de {:?}", json_path))?;
 
     serde_json::from_str(&content).context("Parsing trip.json échoué")
-}
-
-fn find_trip_json(dir: &Path) -> Option<PathBuf> {
-    let direct = dir.join("trip.json");
-    if direct.exists() {
-        return Some(direct);
-    }
-    // Cherche dans les sous-dossiers (archive dézippée avec nom de voyage)
-    fs::read_dir(dir).ok()?.find_map(|entry| {
-        let path = entry.ok()?.path();
-        if path.is_dir() {
-            let candidate = path.join("trip.json");
-            candidate.exists().then_some(candidate)
-        } else {
-            None
-        }
-    })
 }
 
 pub fn country_flag(iso_code: Option<&str>) -> String {
@@ -50,17 +34,14 @@ pub fn country_flag(iso_code: Option<&str>) -> String {
     [flag1, flag2].iter().collect()
 }
 
-pub fn weather_icon(condition: Option<&str>) -> String {
-    let Some(condition) = condition else {
-        return "🌡️".to_string();
-    };
+pub fn weather_icon(condition: Option<&str>) -> &'static str {
     match condition {
-        "clear-day" => "☀️".to_string(),
-        "cloudy" => "☁️".to_string(),
-        "partly-cloudy-day" => "🌤️".to_string(),
-        "rain" => "🌧️".to_string(),
-        "snow" => "❄️".to_string(),
-        _ => "🌡️".to_string(),
+        Some("clear-day") => "☀️",
+        Some("cloudy") => "☁️",
+        Some("partly-cloudy-day") => "🌤️",
+        Some("rain") => "🌧️",
+        Some("snow") => "❄️",
+        _ => "🌡️",
     }
 }
 
@@ -76,15 +57,12 @@ fn generate_location(s: &Step) -> String {
 }
 
 pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<EnrichedStep>)> {
-    // Trouve le répertoire racine contenant les step_<id>/
-    let root = find_trip_root(archive_dir);
-
     let enriched = trip
         .steps
         .iter()
         .map(|step| {
-            let dir_name = step_dir_name(step);
-            let media = load_step_media(&root, step);
+            let dir_name = format!("{}_{}", step.slug, step.id);
+            let media = load_step_media(archive_dir, step);
             let location = generate_location(step);
             let weather = format!(
                 "{} {}",
@@ -107,62 +85,37 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
     Ok((trip, enriched))
 }
 
-fn find_trip_root(archive_dir: &Path) -> PathBuf {
-    // Si un sous-dossier contient step_* → c'est là
-    if let Ok(entries) = fs::read_dir(archive_dir) {
-        for entry in entries.flatten() {
-            let p = entry.path();
-            if p.is_dir() {
-                if has_step_dirs(&p) {
-                    return p;
-                }
-            }
-        }
-    }
-    archive_dir.to_path_buf()
-}
-
-pub fn has_step_dirs(dir: &Path) -> bool {
-    fs::read_dir(dir)
-        .ok()
-        .map(|entries| {
-            entries
-                .flatten()
-                .any(|e| e.file_name().to_string_lossy().starts_with("step_"))
-        })
-        .unwrap_or(false)
-}
-
-pub fn step_dir_name(step: &Step) -> String {
-    match &step.slug {
-        Some(slug) => format!("{}_{}", slug, step.id),
-        None => format!("step_{}", step.id),
-    }
-}
-
 fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
-    let dir_name = step_dir_name(step);
+    let dir_name = format!("{}_{}", step.slug, step.id);
 
     let mut media: Vec<(PathBuf, MediaKind)> = vec![];
 
     let photo_dir = root.join(&dir_name).join("photos");
     if photo_dir.exists() {
-        let mut photos: Vec<_> = fs::read_dir(&photo_dir)
-            .unwrap_or_else(|_| panic!("Lecture {:?}", photo_dir))
-            .flatten()
-            .map(|e| (e.path(), MediaKind::Photo))
-            .collect();
-        media.append(&mut photos);
+        match fs::read_dir(&photo_dir) {
+            Ok(entries) => {
+                let mut photos: Vec<_> = entries
+                    .flatten()
+                    .map(|e| (e.path(), MediaKind::Photo))
+                    .collect();
+                media.append(&mut photos);
+            }
+            Err(e) => tracing::warn!("Impossible de lire {:?} : {}", photo_dir, e),
+        }
     }
 
     let video_dir = root.join(&dir_name).join("videos");
     if video_dir.exists() {
-        let mut videos: Vec<_> = fs::read_dir(&video_dir)
-            .unwrap_or_else(|_| panic!("Lecture {:?}", video_dir))
-            .flatten()
-            .map(|e| (e.path(), MediaKind::Video))
-            .collect();
-        media.append(&mut videos);
+        match fs::read_dir(&video_dir) {
+            Ok(entries) => {
+                let mut videos: Vec<_> = entries
+                    .flatten()
+                    .map(|e| (e.path(), MediaKind::Video))
+                    .collect();
+                media.append(&mut videos);
+            }
+            Err(e) => tracing::warn!("Impossible de lire {:?} : {}", video_dir, e),
+        }
     }
 
     media.sort_by(|(a, _), (b, _)| {
@@ -174,7 +127,7 @@ fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
     media
         .into_iter()
         .map(|(p, kind)| Media {
-            kind: kind,
+            kind,
             relative_path: p
                 .file_name()
                 .unwrap_or_default()
@@ -185,7 +138,7 @@ fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
 }
 
 pub fn parse_locations(archive_dir: &Path) -> Result<Vec<GpsPoint>> {
-    let path = find_trip_root(archive_dir).join("locations.json");
+    let path = archive_dir.join("locations.json");
     if !path.exists() {
         return Ok(vec![]);
     }

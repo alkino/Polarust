@@ -31,23 +31,31 @@ fn main() -> Result<()> {
     let voyage_dirs: Vec<PathBuf> = fs::read_dir(&cli.input)?
         .filter_map(|e| e.ok())
         .map(|e| e.path())
-        .filter(|p| p.is_dir() && p.join("trip.json").exists())
+        .filter(|p| p.is_dir())
         .collect();
 
-    tracing::info!("📂 {} voyage(s) trouvé(s)", voyage_dirs.len());
+    tracing::info!("📂 {} dossier(s) trouvé(s)", voyage_dirs.len());
 
     let generator = generator::SiteGenerator::new(&cli.output, &cli.input);
     let mut all_trips: Vec<model::Trip> = vec![];
 
     for (i, dir) in voyage_dirs.iter().enumerate() {
-        let trip = parser::parse_trip(dir)?;
-        tracing::info!(
-            "📂 {}/{} {} dans {:?}",
-            i + 1,
-            voyage_dirs.len(),
-            trip.name,
-            dir
-        );
+        let trip = match parser::parse_trip(dir) {
+            Ok(t) => {
+                tracing::info!(
+                    "📂 {}/{} {} dans {:?}",
+                    i + 1,
+                    voyage_dirs.len(),
+                    t.name,
+                    dir
+                );
+                t
+            },
+            Err(e) => {
+                tracing::warn!("⚠️  Dossier {:?} ignoré : {}", dir, e);
+                continue;
+            }
+        };
 
         let gps = parser::parse_locations(dir)?;
         tracing::info!("    📍 {} points GPS", gps.len());

@@ -37,7 +37,7 @@ pub struct Step {
     #[serde(deserialize_with = "deserialize_timestamp")]
     pub start_time: i64,
     pub location: Option<Location>,
-    pub slug: Option<String>,
+    pub slug: String,
     pub weather_condition: Option<String>,
     pub weather_temperature: Option<i8>,
 }

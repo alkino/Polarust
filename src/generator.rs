@@ -77,7 +77,7 @@ impl SiteGenerator {
         }
     }
 
-    pub fn generate_index(&self, all_trips: &Vec<Trip>) -> Result<()> {
+    pub fn generate_index(&self, all_trips: &[Trip]) -> Result<()> {
         let tmpl = self.env.get_template("trips.html")?;
         let html = tmpl.render(context! {
             trips => all_trips,
