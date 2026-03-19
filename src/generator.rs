@@ -17,6 +17,7 @@ struct StepContext<'a> {
     date: i64,
     location: String,
     media: &'a Vec<Media>,
+    weather: String,
 }
 
 #[derive(Serialize)]
@@ -24,8 +25,8 @@ struct MapMarker {
     id: u64,
     lat: f64,
     lon: f64,
-    title: String,
     thumb: String,
+    location: String,
 }
 
 #[derive(Serialize)]
@@ -106,12 +107,6 @@ impl SiteGenerator {
         Ok(())
     }
 
-    fn generate_location(&self, es: &EnrichedStep) -> String {
-        let country = es.country.clone();
-        let location = es.step.location.as_ref().and_then(|l| l.name.as_deref()).unwrap_or("Lieu inconnu").to_string();
-        format!("{} {}", country, location)
-    }
-
     fn write_index(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
         let steps_ctx: Vec<StepContext> = steps
             .iter()
@@ -124,8 +119,9 @@ impl SiteGenerator {
                     .map(|p| format!("thumbnails/{}", p.relative_path))
                     .unwrap_or_default(),
                 date: es.step.start_time,
-                location: self.generate_location(es),
+                location: es.location.clone(),
                 media: &es.media,
+                weather: es.weather.clone(),
             })
             .collect();
 
@@ -137,13 +133,13 @@ impl SiteGenerator {
                     id: es.step.id,
                     lat: loc.lat?,
                     lon: loc.lon?,
-                    title: escape_html(es.step.display_name.as_deref().unwrap_or("?")),
                     thumb: es
                         .media
                         .iter()
                         .find(|m| matches!(m.kind, MediaKind::Photo))
                         .map(|p| format!("thumbnails/{}", p.relative_path))
                         .unwrap_or_default(),
+                    location: es.location.clone(),
                 })
             })
             .collect();
@@ -209,7 +205,8 @@ impl SiteGenerator {
             trip        => trip,
             title       => es.step.display_name.as_deref().unwrap_or("Étape sans titre"),
             date        => es.step.start_time,
-            location    => es.step.location.as_ref().and_then(|l| l.name.as_deref()).unwrap_or(""),
+            location    => es.location,
+            weather     => es.weather,
             description => es.step.description.as_deref().unwrap_or(""),
             media       => &es.media,
             map_link    => map_link,
@@ -313,12 +310,4 @@ impl SiteGenerator {
         })?;
         Ok(())
     }
-}
-
-fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#39;")
 }

@@ -38,6 +38,8 @@ pub struct Step {
     pub start_time: i64,
     pub location: Option<Location>,
     pub slug: Option<String>,
+    pub weather_condition: Option<String>,
+    pub weather_temperature: Option<i8>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -68,7 +70,8 @@ pub struct EnrichedStep {
     pub step: Step,
     pub media: Vec<Media>, // chemins relatifs vers output/photos/
     pub dir_name: String,
-    pub country: String,
+    pub location: String,
+    pub weather: String,
 }
 
 #[derive(Debug, Deserialize)]

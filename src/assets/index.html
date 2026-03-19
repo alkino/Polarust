@@ -33,7 +33,7 @@
         <div class="card-body">
           <div class="card-date">{{ es.date | format_date }}</div>
           <h2 class="card-title">{{ es.step.display_name | default("Étape sans titre") }}</h2>
-          <p class="card-location">📍 {{ es.location }}</p>
+          <p class="card-location">📍 {{ es.location }} {{ es.weather }}</p>
           <p class="card-count">🖼 {{ es.media|length }} media</p>
         </div>
       </a>
@@ -68,7 +68,7 @@
       })
       })
       .addTo(map)
-      .bindPopup('<b>{{ m.title }}</b><br><a href="steps/step_{{ m.id }}.html"><img src="{{ m.thumb }}" width="120"><br>Voir l\'étape</a>');
+      .bindPopup('<b>{{ m.location }}</b><br><a href="steps/step_{{ m.id }}.html"><img src="{{ m.thumb }}" width="120"><br>Voir l\'étape</a>');
     {% endfor %}
 
     Object.values(markers).forEach(marker => {

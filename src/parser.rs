@@ -33,7 +33,9 @@ fn find_trip_json(dir: &Path) -> Option<PathBuf> {
 }
 
 pub fn country_flag(iso_code: Option<&str>) -> String {
-    let Some(iso_code) = iso_code else { return "🌍".to_string() };
+    let Some(iso_code) = iso_code else {
+        return "🌍".to_string();
+    };
     let chars: Vec<char> = iso_code.chars().collect();
 
     if chars.len() != 2 || !chars.iter().all(|c| c.is_ascii_alphabetic()) {
@@ -46,7 +48,31 @@ pub fn country_flag(iso_code: Option<&str>) -> String {
     let flag2 = char::from_u32(chars[1] as u32 + OFFSET).unwrap();
 
     [flag1, flag2].iter().collect()
+}
 
+pub fn weather_icon(condition: Option<&str>) -> String {
+    let Some(condition) = condition else {
+        return "🌡️".to_string();
+    };
+    match condition {
+        "clear-day" => "☀️".to_string(),
+        "cloudy" => "☁️".to_string(),
+        "partly-cloudy-day" => "🌤️".to_string(),
+        "rain" => "🌧️".to_string(),
+        "snow" => "❄️".to_string(),
+        _ => "🌡️".to_string(),
+    }
+}
+
+fn generate_location(s: &Step) -> String {
+    let country = country_flag(s.location.as_ref().and_then(|l| l.country_code.as_deref()));
+    let location = s
+        .location
+        .as_ref()
+        .and_then(|l| l.name.as_deref())
+        .unwrap_or("Lieu inconnu")
+        .to_string();
+    format!("{} {}", country, location)
 }
 
 pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<EnrichedStep>)> {
@@ -59,15 +85,21 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
         .map(|step| {
             let dir_name = step_dir_name(step);
             let media = load_step_media(&root, step);
-            let country = country_flag(
-                step.location.as_ref().and_then(|l| l.country_code.as_deref())
-                    );
+            let location = generate_location(step);
+            let weather = format!(
+                "{} {}",
+                weather_icon(step.weather_condition.as_deref()),
+                step.weather_temperature
+                    .map(|t| format!("{}°C", t))
+                    .unwrap_or("-".to_string())
+            );
 
             EnrichedStep {
                 dir_name,
                 step: step.clone(),
                 media,
-                country,
+                location,
+                weather,
             }
         })
         .collect();
