@@ -32,6 +32,23 @@ fn find_trip_json(dir: &Path) -> Option<PathBuf> {
     })
 }
 
+pub fn country_flag(iso_code: Option<&str>) -> String {
+    let Some(iso_code) = iso_code else { return "🌍".to_string() };
+    let chars: Vec<char> = iso_code.chars().collect();
+
+    if chars.len() != 2 || !chars.iter().all(|c| c.is_ascii_alphabetic()) {
+        return "🌍".to_string();
+    }
+
+    const OFFSET: u32 = '🇦' as u32 - 'A' as u32;
+
+    let flag1 = char::from_u32(chars[0] as u32 + OFFSET).unwrap();
+    let flag2 = char::from_u32(chars[1] as u32 + OFFSET).unwrap();
+
+    [flag1, flag2].iter().collect()
+
+}
+
 pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<EnrichedStep>)> {
     // Trouve le répertoire racine contenant les step_<id>/
     let root = find_trip_root(archive_dir);
@@ -42,10 +59,15 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
         .map(|step| {
             let dir_name = step_dir_name(step);
             let media = load_step_media(&root, step);
+            let country = country_flag(
+                step.location.as_ref().and_then(|l| l.country_code.as_deref())
+                    );
+
             EnrichedStep {
                 dir_name,
                 step: step.clone(),
                 media,
+                country,
             }
         })
         .collect();

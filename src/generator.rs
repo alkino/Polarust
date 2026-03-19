@@ -106,6 +106,12 @@ impl SiteGenerator {
         Ok(())
     }
 
+    fn generate_location(&self, es: &EnrichedStep) -> String {
+        let country = es.country.clone();
+        let location = es.step.location.as_ref().and_then(|l| l.name.as_deref()).unwrap_or("Lieu inconnu").to_string();
+        format!("{} {}", country, location)
+    }
+
     fn write_index(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
         let steps_ctx: Vec<StepContext> = steps
             .iter()
@@ -118,13 +124,7 @@ impl SiteGenerator {
                     .map(|p| format!("thumbnails/{}", p.relative_path))
                     .unwrap_or_default(),
                 date: es.step.start_time,
-                location: es
-                    .step
-                    .location
-                    .as_ref()
-                    .and_then(|l| l.name.as_deref())
-                    .unwrap_or("Lieu inconnu")
-                    .to_string(),
+                location: self.generate_location(es),
                 media: &es.media,
             })
             .collect();

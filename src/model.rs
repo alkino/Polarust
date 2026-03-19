@@ -68,6 +68,7 @@ pub struct EnrichedStep {
     pub step: Step,
     pub media: Vec<Media>, // chemins relatifs vers output/photos/
     pub dir_name: String,
+    pub country: String,
 }
 
 #[derive(Debug, Deserialize)]
