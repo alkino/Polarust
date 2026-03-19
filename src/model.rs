@@ -1,13 +1,15 @@
-use serde::{Deserialize, Serialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
-fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<i64, D::Error> where
-D: Deserializer<'de>,
+fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
 {
     f64::deserialize(deserializer).map(|f| f as i64)
 }
 
-fn deserialize_timestamp_opt<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error> where
-D: Deserializer<'de>,
+fn deserialize_timestamp_opt<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
 {
     Option::<f64>::deserialize(deserializer).map(|opt| opt.map(|f| f as i64))
 }
@@ -64,7 +66,7 @@ pub struct Media {
 #[derive(Debug, Serialize)]
 pub struct EnrichedStep {
     pub step: Step,
-    pub media: Vec<Media>,  // chemins relatifs vers output/photos/
+    pub media: Vec<Media>, // chemins relatifs vers output/photos/
     pub dir_name: String,
 }
 

@@ -1,19 +1,18 @@
-use std::path::{Path, PathBuf};
-use std::fs;
 use anyhow::{Context, Result};
+use std::fs;
+use std::path::{Path, PathBuf};
 
-use crate::model::{Trip, EnrichedStep, Step, LocationsFile, GpsPoint, MediaKind, Media};
+use crate::model::{EnrichedStep, GpsPoint, LocationsFile, Media, MediaKind, Step, Trip};
 
 pub fn parse_trip(archive_dir: &Path) -> Result<Trip> {
     // Cherche trip.json dans le premier sous-dossier ou à la racine
-    let json_path = find_trip_json(archive_dir)
-        .context("Impossible de trouver trip.json dans l'archive")?;
+    let json_path =
+        find_trip_json(archive_dir).context("Impossible de trouver trip.json dans l'archive")?;
 
-    let content = fs::read_to_string(&json_path)
-        .with_context(|| format!("Lecture de {:?}", json_path))?;
+    let content =
+        fs::read_to_string(&json_path).with_context(|| format!("Lecture de {:?}", json_path))?;
 
-    serde_json::from_str(&content)
-        .context("Parsing trip.json échoué")
+    serde_json::from_str(&content).context("Parsing trip.json échoué")
 }
 
 fn find_trip_json(dir: &Path) -> Option<PathBuf> {
@@ -37,15 +36,19 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
     // Trouve le répertoire racine contenant les step_<id>/
     let root = find_trip_root(archive_dir);
 
-    let enriched = trip.steps.iter().map(|step| {
-        let dir_name = step_dir_name(step);
-        let media = load_step_media(&root, step);
-        EnrichedStep {
-            dir_name,
-            step: step.clone(),
-            media,
-        }
-    }).collect();
+    let enriched = trip
+        .steps
+        .iter()
+        .map(|step| {
+            let dir_name = step_dir_name(step);
+            let media = load_step_media(&root, step);
+            EnrichedStep {
+                dir_name,
+                step: step.clone(),
+                media,
+            }
+        })
+        .collect();
 
     Ok((trip, enriched))
 }
@@ -66,9 +69,13 @@ fn find_trip_root(archive_dir: &Path) -> PathBuf {
 }
 
 pub fn has_step_dirs(dir: &Path) -> bool {
-    fs::read_dir(dir).ok()
-        .map(|entries| entries.flatten()
-            .any(|e| e.file_name().to_string_lossy().starts_with("step_")))
+    fs::read_dir(dir)
+        .ok()
+        .map(|entries| {
+            entries
+                .flatten()
+                .any(|e| e.file_name().to_string_lossy().starts_with("step_"))
+        })
         .unwrap_or(false)
 }
 
@@ -105,18 +112,22 @@ fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
     }
 
     media.sort_by(|(a, _), (b, _)| {
-        a.file_name().unwrap_or_default()
+        a.file_name()
+            .unwrap_or_default()
             .cmp(b.file_name().unwrap_or_default())
     });
 
-    media.into_iter()
+    media
+        .into_iter()
         .map(|(p, kind)| Media {
             kind: kind,
-            relative_path: p.file_name().unwrap_or_default()
+            relative_path: p
+                .file_name()
+                .unwrap_or_default()
                 .to_string_lossy()
                 .to_string(),
-    })
-    .collect()
+        })
+        .collect()
 }
 
 pub fn parse_locations(archive_dir: &Path) -> Result<Vec<GpsPoint>> {
@@ -135,4 +146,3 @@ pub fn parse_locations(archive_dir: &Path) -> Result<Vec<GpsPoint>> {
     points.sort_by_key(|p| p.timestamp);
     Ok(points)
 }
-

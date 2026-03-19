@@ -1,13 +1,13 @@
-use std::path::{Path, PathBuf};
-use std::fs;
-use anyhow::{Result, Context};
-use chrono::{DateTime, Utc, TimeZone};
-use minijinja::{Environment, context };
-use serde::Serialize;
+use anyhow::Result;
+use chrono::{DateTime, TimeZone, Utc};
 use image::imageops::FilterType;
+use minijinja::{context, Environment};
 use rayon::prelude::*;
+use serde::Serialize;
+use std::fs;
+use std::path::{Path, PathBuf};
 
-use crate::model::{Trip, EnrichedStep, GpsPoint, Media, MediaKind};
+use crate::model::{EnrichedStep, GpsPoint, Media, MediaKind, Trip};
 
 // Structs de contexte pour les templates
 #[derive(Serialize)]
@@ -45,20 +45,21 @@ impl SiteGenerator {
         let mut env = Environment::new();
         env.add_template(
             "trips.html".into(),
-            include_str!("assets/trips.html").into()
-        ).unwrap();
+            include_str!("assets/trips.html").into(),
+        )
+        .unwrap();
         env.add_template(
             "index.html".into(),
-            include_str!("assets/index.html").into()
-        ).unwrap();
-        env.add_template(
-            "step.html".into(),
-            include_str!("assets/step.html").into()
-        ).unwrap();
+            include_str!("assets/index.html").into(),
+        )
+        .unwrap();
+        env.add_template("step.html".into(), include_str!("assets/step.html").into())
+            .unwrap();
         env.add_template(
             "gallery.html".into(),
-            include_str!("assets/gallery.html").into()
-        ).unwrap();
+            include_str!("assets/gallery.html").into(),
+        )
+        .unwrap();
 
         // Register a filter to format timestamp in the template directly
         env.add_filter("format_date", |ts: i64| -> String {
@@ -67,7 +68,6 @@ impl SiteGenerator {
                 .map(|dt: DateTime<Utc>| dt.format("%d %B %Y").to_string())
                 .unwrap_or_else(|| "?".to_string())
         });
-
 
         Self {
             output_dir: output_dir.to_path_buf(),
@@ -86,7 +86,12 @@ impl SiteGenerator {
         Ok(())
     }
 
-    pub fn generate_trip(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
+    pub fn generate_trip(
+        &self,
+        trip: &Trip,
+        steps: &[EnrichedStep],
+        gps: &[GpsPoint],
+    ) -> Result<()> {
         self.prepare_dirs(&trip)?;
         self.copy_media(trip, steps)?;
         self.write_gallery_page(trip, steps)?;
@@ -102,45 +107,58 @@ impl SiteGenerator {
     }
 
     fn write_index(&self, trip: &Trip, steps: &[EnrichedStep], gps: &[GpsPoint]) -> Result<()> {
-        let steps_ctx: Vec<StepContext> = steps.iter().map(|es| StepContext {
-            step: &es.step,
-            thumb: es.media.iter().find(|m| matches!(m.kind, MediaKind::Photo))
-                .map(|p| format!("thumbnails/{}", p.relative_path))
-                .unwrap_or_default(),
-            date: es.step.start_time,
-            location: es.step.location.as_ref()
-                .and_then(|l| l.name.as_deref())
-                .unwrap_or("Lieu inconnu")
-                .to_string(),
-            media: &es.media,
-        }).collect();
-
-        let map_markers: Vec<MapMarker> = steps.iter().filter_map(|es| {
-            let loc = es.step.location.as_ref()?;
-            Some(MapMarker {
-                id: es.step.id,
-                lat: loc.lat?,
-                lon: loc.lon?,
-                title: escape_html(es.step.display_name.as_deref().unwrap_or("?")),
-                thumb: es.media.iter().find(|m| matches!(m.kind, MediaKind::Photo))
+        let steps_ctx: Vec<StepContext> = steps
+            .iter()
+            .map(|es| StepContext {
+                step: &es.step,
+                thumb: es
+                    .media
+                    .iter()
+                    .find(|m| matches!(m.kind, MediaKind::Photo))
                     .map(|p| format!("thumbnails/{}", p.relative_path))
                     .unwrap_or_default(),
+                date: es.step.start_time,
+                location: es
+                    .step
+                    .location
+                    .as_ref()
+                    .and_then(|l| l.name.as_deref())
+                    .unwrap_or("Lieu inconnu")
+                    .to_string(),
+                media: &es.media,
             })
-        }).collect();
-
-        let polyline: Vec<[f64; 2]> = gps.iter()
-            .map(|p| [p.lat, p.lon])
             .collect();
 
-        let (first_lat, first_lon) = steps.iter()
+        let map_markers: Vec<MapMarker> = steps
+            .iter()
+            .filter_map(|es| {
+                let loc = es.step.location.as_ref()?;
+                Some(MapMarker {
+                    id: es.step.id,
+                    lat: loc.lat?,
+                    lon: loc.lon?,
+                    title: escape_html(es.step.display_name.as_deref().unwrap_or("?")),
+                    thumb: es
+                        .media
+                        .iter()
+                        .find(|m| matches!(m.kind, MediaKind::Photo))
+                        .map(|p| format!("thumbnails/{}", p.relative_path))
+                        .unwrap_or_default(),
+                })
+            })
+            .collect();
+
+        let polyline: Vec<[f64; 2]> = gps.iter().map(|p| [p.lat, p.lon]).collect();
+
+        let (first_lat, first_lon) = steps
+            .iter()
             .find_map(|es| {
                 let loc = es.step.location.as_ref()?;
                 Some((loc.lat?, loc.lon?))
             })
             .unwrap_or((48.8566, 2.3522));
 
-        let cover_url = trip.cover_photo_path.as_deref()
-            .unwrap_or_default();
+        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
 
         let tmpl = self.env.get_template("index.html")?;
         let html = tmpl.render(context! {
@@ -153,7 +171,6 @@ impl SiteGenerator {
             first_lon => first_lon,
             cover_url => cover_url,
         })?;
-
 
         fs::write(self.output_dir.join(&trip.slug).join("index.html"), html)?;
         Ok(())
@@ -169,17 +186,23 @@ impl SiteGenerator {
     ) -> Result<()> {
         let make_nav = |e: &EnrichedStep| NavStep {
             id: e.step.id,
-            name: e.step.display_name.clone().unwrap_or_else(|| "Étape".into()),
+            name: e
+                .step
+                .display_name
+                .clone()
+                .unwrap_or_else(|| "Étape".into()),
         };
 
-        let map_link = es.step.location.as_ref()
+        let map_link = es
+            .step
+            .location
+            .as_ref()
             .and_then(|l| l.lat.zip(l.lon))
-            .map(|(lat, lon)| format!(
-                "https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=13/{lat}/{lon}"
-            ));
+            .map(|(lat, lon)| {
+                format!("https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=13/{lat}/{lon}")
+            });
 
-        let cover_url = trip.cover_photo_path.as_deref()
-            .unwrap_or_default();
+        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
 
         let tmpl = self.env.get_template("step.html")?;
         let html = tmpl.render(context! {
@@ -197,15 +220,17 @@ impl SiteGenerator {
         })?;
 
         fs::write(
-            self.output_dir.join(&trip.slug).join("steps").join(format!("step_{}.html", es.step.id)),
+            self.output_dir
+                .join(&trip.slug)
+                .join("steps")
+                .join(format!("step_{}.html", es.step.id)),
             html,
         )?;
         Ok(())
     }
 
     fn write_gallery_page(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
-        let cover_url = trip.cover_photo_path.as_deref()
-            .unwrap_or_default();
+        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
 
         let tmpl = self.env.get_template("gallery.html")?;
         let html = tmpl.render(context! {
@@ -220,7 +245,10 @@ impl SiteGenerator {
     }
 
     fn write_css(&self) -> Result<()> {
-        fs::write(self.output_dir.join("style.css"), include_str!("assets/style.css"))?;
+        fs::write(
+            self.output_dir.join("style.css"),
+            include_str!("assets/style.css"),
+        )?;
         Ok(())
     }
 
@@ -238,8 +266,16 @@ impl SiteGenerator {
         steps.par_iter().try_for_each(|es| -> Result<()> {
             let trip_key = format!("{}_{}", trip.slug, trip.id);
 
-            let src_photos = self.archive_root.join(&trip_key).join(&es.dir_name).join("photos");
-            let src_videos = self.archive_root.join(&trip_key).join(&es.dir_name).join("videos");
+            let src_photos = self
+                .archive_root
+                .join(&trip_key)
+                .join(&es.dir_name)
+                .join("photos");
+            let src_videos = self
+                .archive_root
+                .join(&trip_key)
+                .join(&es.dir_name)
+                .join("videos");
             let dst = self.output_dir.join(&trip.slug).join("media");
             es.media.par_iter().try_for_each(|media| -> Result<()> {
                 let src = match media.kind {
@@ -260,12 +296,14 @@ impl SiteGenerator {
                         if !thumb.exists() {
                             let data = fs::read(&src)?;
                             let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
-                            let resized = image::DynamicImage::ImageRgb8(img)
-                                .resize(400, 300, FilterType::Triangle);
+                            let resized = image::DynamicImage::ImageRgb8(img).resize(
+                                400,
+                                300,
+                                FilterType::Triangle,
+                            );
                             let rgb = resized.to_rgb8();
-                            let compressed = turbojpeg::compress_image(
-                                &rgb, 75, turbojpeg::Subsamp::Sub2x2
-                            )?;
+                            let compressed =
+                                turbojpeg::compress_image(&rgb, 75, turbojpeg::Subsamp::Sub2x2)?;
                             fs::write(&thumb, compressed)?;
                         }
                     }
@@ -279,8 +317,8 @@ impl SiteGenerator {
 
 fn escape_html(s: &str) -> String {
     s.replace('&', "&amp;")
-     .replace('<', "&lt;")
-     .replace('>', "&gt;")
-     .replace('"', "&quot;")
-     .replace('\'', "&#39;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }

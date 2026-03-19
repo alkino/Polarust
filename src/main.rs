@@ -1,11 +1,11 @@
+mod generator;
 mod model;
 mod parser;
-mod generator;
 
+use anyhow::Result;
+use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
-use clap::Parser;
-use anyhow::Result;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -41,7 +41,13 @@ fn main() -> Result<()> {
 
     for (i, dir) in voyage_dirs.iter().enumerate() {
         let trip = parser::parse_trip(dir)?;
-        tracing::info!("📂 {}/{} {} dans {:?}", i + 1, voyage_dirs.len(), trip.name, dir);
+        tracing::info!(
+            "📂 {}/{} {} dans {:?}",
+            i + 1,
+            voyage_dirs.len(),
+            trip.name,
+            dir
+        );
 
         let gps = parser::parse_locations(dir)?;
         tracing::info!("    📍 {} points GPS", gps.len());
@@ -55,7 +61,9 @@ fn main() -> Result<()> {
 
     generator.generate_index(&all_trips)?;
 
-    tracing::info!("🌐 Ouvre {:?} dans ton navigateur", cli.output.join("index.html"));
+    tracing::info!(
+        "🌐 Ouvre {:?} dans ton navigateur",
+        cli.output.join("index.html")
+    );
     Ok(())
 }
-
