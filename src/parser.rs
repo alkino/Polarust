@@ -62,7 +62,7 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
         .iter()
         .map(|step| {
             let dir_name = format!("{}_{}", step.slug, step.id);
-            let media = load_step_media(archive_dir, step);
+            let media = load_step_media(&archive_dir.join(&dir_name));
             let location = generate_location(step);
             let weather = format!(
                 "{} {}",
@@ -85,12 +85,10 @@ pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<Enriche
     Ok((trip, enriched))
 }
 
-fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
-    let dir_name = format!("{}_{}", step.slug, step.id);
-
+fn load_step_media(root: &Path) -> Vec<Media> {
     let mut media: Vec<(PathBuf, MediaKind)> = vec![];
 
-    let photo_dir = root.join(&dir_name).join("photos");
+    let photo_dir = root.join("photos");
     if photo_dir.exists() {
         match fs::read_dir(&photo_dir) {
             Ok(entries) => {
@@ -104,7 +102,7 @@ fn load_step_media(root: &Path, step: &Step) -> Vec<Media> {
         }
     }
 
-    let video_dir = root.join(&dir_name).join("videos");
+    let video_dir = root.join("videos");
     if video_dir.exists() {
         match fs::read_dir(&video_dir) {
             Ok(entries) => {
