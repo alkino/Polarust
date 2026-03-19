@@ -79,7 +79,16 @@
             slides[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
+    function pauseAllVideos() {
+        slides.forEach(slide => {
+          if (slide.tagName == 'VIDEO') {
+            slide.pause();
+          }
+        });
+    }
+
     function pcMove(dir) {
+        pauseAllVideos();
         current = (current + dir + total) % total;
         scrollToSlide(current);
         updateActive();
@@ -87,6 +96,7 @@
 
     slides.forEach((slide, i) => {
         slide.addEventListener('click', () => {
+            pauseAllVideos();
             current = i;
             scrollToSlide(current);
             updateActive();
