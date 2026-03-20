@@ -50,8 +50,8 @@ impl SiteGenerator {
         )
         .unwrap();
         env.add_template(
-            "index.html".into(),
-            include_str!("assets/index.html").into(),
+            "trip.html".into(),
+            include_str!("assets/trip.html").into(),
         )
         .unwrap();
         env.add_template("step.html".into(), include_str!("assets/step.html").into())
@@ -161,7 +161,7 @@ impl SiteGenerator {
 
         let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
 
-        let tmpl = self.env.get_template("index.html")?;
+        let tmpl = self.env.get_template("trip.html")?;
         let html = tmpl.render(context! {
             trip     => trip,
             steps    => steps_ctx,
