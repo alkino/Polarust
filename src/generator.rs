@@ -70,6 +70,10 @@ impl SiteGenerator {
                 .unwrap_or_else(|| "?".to_string())
         });
 
+        env.add_filter("tojson", |value: minijinja::Value| -> String {
+            serde_json::to_string(&value).unwrap_or_else(|_| "[]".to_string())
+        });
+
         Self {
             output_dir: output_dir.to_path_buf(),
             archive_root: archive_root.to_path_buf(),
@@ -97,6 +101,7 @@ impl SiteGenerator {
         self.copy_media(trip, steps)?;
         self.write_gallery_page(trip, steps)?;
         self.write_css()?;
+        self.write_js()?;
         self.write_index(trip, steps, gps)?;
         for i in 0..steps.len() {
             let prev = if i > 0 { steps.get(i - 1) } else { None };
@@ -238,6 +243,14 @@ impl SiteGenerator {
         })?;
 
         fs::write(self.output_dir.join(&trip.slug).join("gallery.html"), html)?;
+        Ok(())
+    }
+
+    fn write_js(&self) -> Result<()> {
+        fs::write(
+            self.output_dir.join("trip.js"),
+            include_str!("assets/trip.js"),
+        )?;
         Ok(())
     }
 
