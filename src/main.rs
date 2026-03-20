@@ -1,6 +1,7 @@
 mod generator;
 mod model;
 mod parser;
+mod enricher;
 
 use anyhow::Result;
 use clap::Parser;
@@ -60,7 +61,7 @@ fn main() -> Result<()> {
         let gps = parser::parse_locations(dir)?;
         tracing::info!("    📍 {} points GPS", gps.len());
 
-        let (trip, enriched) = parser::enrich_steps(dir, trip)?;
+        let (trip, enriched) = enricher::enrich_steps(dir, trip)?;
 
         generator.generate_trip(&trip, &enriched, &gps)?;
 
