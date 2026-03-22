@@ -1,7 +1,7 @@
 use anyhow::{Result};
 use std::fs;
 use std::path::{Path, PathBuf};
-use rayon::prelude::*;
+use std::collections::HashMap;
 
 use crate::model::{EnrichedStep, Media, MediaKind, Step, Trip};
 
@@ -45,14 +45,23 @@ fn generate_location(s: &Step) -> String {
     format!("{} {}", country, location)
 }
 
-fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<(PathBuf, MediaKind)> {
+fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<Media> {
     if !dir.exists() {
         return vec![];
     }
     match fs::read_dir(&dir) {
         Ok(entries) => entries
                 .flatten()
-                .map(|e| (e.path(), kind))
+                .filter_map(|e| {
+                    Some(Media {
+                        kind,
+                        relative_path: e.path()
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                            .to_string(),
+                    })
+                })
                 .collect(),
         Err(e) => {
             tracing::warn!("Impossible de lire {:?} : {}", dir, e);
@@ -61,39 +70,41 @@ fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<(PathBuf, MediaKind)> {
     }
 }
 
-fn load_step_media(root: &Path) -> Vec<Media> {
-    let mut media: Vec<(PathBuf, MediaKind)> = vec![];
+fn scan_archive(archive_dir: &Path) -> HashMap<String, Vec<Media>> {
+    let mut map: HashMap<String, Vec<Media>> = HashMap::new();
 
-    media.extend(get_media(root.join("photos"), MediaKind::Photo));
-    media.extend(get_media(root.join("videos"), MediaKind::Video));
+    let Ok(entries) = fs::read_dir(archive_dir) else {
+        return map;
+    };
 
-    media.sort_by(|(a, _), (b, _)| {
-        a.file_name()
-            .unwrap_or_default()
-            .cmp(b.file_name().unwrap_or_default())
-    });
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let dir_name = path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
 
-    media
-        .into_iter()
-        .map(|(p, kind)| Media {
-            kind,
-            relative_path: p
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_string(),
-        })
-        .collect()
+        let mut media = get_media(path.join("photos"), MediaKind::Photo);
+        media.extend(get_media(path.join("videos"), MediaKind::Video));
+        media.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+
+        map.insert(dir_name, media);
+    }
+    map
 }
 
-
 pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<EnrichedStep>)> {
+    let media_map = scan_archive(archive_dir);
+
     let enriched = trip
         .steps
-        .par_iter()
+        .iter()
         .map(|step| {
             let dir_name = format!("{}_{}", step.slug, step.id);
-            let media = load_step_media(&archive_dir.join(&dir_name));
+            let media = media_map.get(&dir_name).cloned().unwrap_or_default();
             let location = generate_location(step);
             let weather = format!(
                 "{} {}",
