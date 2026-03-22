@@ -5,10 +5,8 @@ use std::path::{Path};
 use crate::model::{GpsPoint, LocationsFile, Trip};
 
 pub fn parse_trip(archive_dir: &Path) -> Result<Trip> {
-    let json_path = {
-        let p = archive_dir.join("trip.json");
-        p.exists().then_some(p)
-    }.context("impossible de trouver 'trip.json'.")?;
+    let json_path = archive_dir.join("trip.json");
+    anyhow::ensure!(json_path.exists(), "impossible de trouver 'trip.json'.");
 
     let content =
         fs::read_to_string(&json_path).with_context(|| format!("Lecture de {:?}", json_path))?;
