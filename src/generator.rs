@@ -257,54 +257,49 @@ impl SiteGenerator {
     fn copy_media(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
         tracing::info!("    📷 Copying media");
         let thumb_dir = self.output_dir.join(&trip.slug).join("thumbnails");
+        let dst = self.output_dir.join(&trip.slug).join("media");
+        let trip_key = format!("{}_{}", trip.slug, trip.id);
 
-        steps.par_iter().try_for_each(|es| -> Result<()> {
-            let trip_key = format!("{}_{}", trip.slug, trip.id);
+        let all_media: Vec<(&EnrichedStep, &Media)> = steps
+            .iter()
+            .flat_map(|es| es.media.iter().map(move |m| (es, m)))
+            .collect();
 
-            let src_photos = self
-                .archive_root
+        all_media.par_iter().try_for_each(|(es, media)| -> Result<()> {
+            let src_subdir = match media.kind {
+                MediaKind::Photo => "photos",
+                MediaKind::Video => "videos",
+            };
+            let src = self.archive_root
                 .join(&trip_key)
                 .join(&es.dir_name)
-                .join("photos");
-            let src_videos = self
-                .archive_root
-                .join(&trip_key)
-                .join(&es.dir_name)
-                .join("videos");
-            let dst = self.output_dir.join(&trip.slug).join("media");
-            es.media.par_iter().try_for_each(|media| -> Result<()> {
-                let src = match media.kind {
-                    MediaKind::Photo => src_photos.clone(),
-                    MediaKind::Video => src_videos.clone(),
-                };
+                .join(src_subdir)
+                .join(&media.relative_path);
+            let dst = dst.join(&media.relative_path);
 
-                let src = src.join(&media.relative_path);
-                let dst = dst.join(&media.relative_path);
+            if src.exists() {
+                if !dst.exists() {
+                    fs::copy(&src, &dst)?;
+                }
 
-                if src.exists() {
-                    if !dst.exists() {
-                        fs::copy(&src, &dst)?;
-                    }
-
-                    if matches!(media.kind, MediaKind::Photo) {
-                        let thumb = thumb_dir.join(&media.relative_path);
-                        if !thumb.exists() {
-                            let data = fs::read(&src)?;
-                            let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
-                            let resized = image::DynamicImage::ImageRgb8(img).resize(
-                                400,
-                                300,
-                                FilterType::Triangle,
-                            );
-                            let rgb = resized.to_rgb8();
-                            let compressed =
-                                turbojpeg::compress_image(&rgb, 75, turbojpeg::Subsamp::Sub2x2)?;
-                            fs::write(&thumb, compressed)?;
-                        }
+                if matches!(media.kind, MediaKind::Photo) {
+                    let thumb = thumb_dir.join(&media.relative_path);
+                    if !thumb.exists() {
+                        let data = fs::read(&src)?;
+                        let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
+                        let resized = image::DynamicImage::ImageRgb8(img).resize(
+                            400,
+                            300,
+                            FilterType::Triangle,
+                        );
+                        let rgb = resized.to_rgb8();
+                        let compressed =
+                            turbojpeg::compress_image(&rgb, 75, turbojpeg::Subsamp::Sub2x2)?;
+                        fs::write(&thumb, compressed)?;
                     }
                 }
-                Ok(())
-            })
+            }
+            Ok(())
         })?;
         Ok(())
     }
