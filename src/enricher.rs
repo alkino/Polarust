@@ -44,36 +44,27 @@ fn generate_location(s: &Step) -> String {
     format!("{} {}", country, location)
 }
 
+fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<(PathBuf, MediaKind)> {
+    if !dir.exists() {
+        return vec![];
+    }
+    match fs::read_dir(&dir) {
+        Ok(entries) => entries
+                .flatten()
+                .map(|e| (e.path(), kind.clone()))
+                .collect(),
+        Err(e) => {
+            tracing::warn!("Impossible de lire {:?} : {}", dir, e);
+            vec![]
+        }
+    }
+}
+
 fn load_step_media(root: &Path) -> Vec<Media> {
     let mut media: Vec<(PathBuf, MediaKind)> = vec![];
 
-    let photo_dir = root.join("photos");
-    if photo_dir.exists() {
-        match fs::read_dir(&photo_dir) {
-            Ok(entries) => {
-                let mut photos: Vec<_> = entries
-                    .flatten()
-                    .map(|e| (e.path(), MediaKind::Photo))
-                    .collect();
-                media.append(&mut photos);
-            }
-            Err(e) => tracing::warn!("Impossible de lire {:?} : {}", photo_dir, e),
-        }
-    }
-
-    let video_dir = root.join("videos");
-    if video_dir.exists() {
-        match fs::read_dir(&video_dir) {
-            Ok(entries) => {
-                let mut videos: Vec<_> = entries
-                    .flatten()
-                    .map(|e| (e.path(), MediaKind::Video))
-                    .collect();
-                media.append(&mut videos);
-            }
-            Err(e) => tracing::warn!("Impossible de lire {:?} : {}", video_dir, e),
-        }
-    }
+    media.extend(get_media(root.join("photos"), MediaKind::Photo));
+    media.extend(get_media(root.join("videos"), MediaKind::Video));
 
     media.sort_by(|(a, _), (b, _)| {
         a.file_name()
@@ -87,8 +78,8 @@ fn load_step_media(root: &Path) -> Vec<Media> {
             kind,
             relative_path: p
                 .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
                 .to_string(),
         })
         .collect()
