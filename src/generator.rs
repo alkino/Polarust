@@ -86,6 +86,10 @@ impl SiteGenerator {
         gps: &[GpsPoint],
     ) -> Result<()> {
         self.prepare_dirs(&trip)?;
+        if let Some(url) = &trip.cover_photo_path {
+            let dest = self.output_dir.join(&trip.slug).join("cover.jpg");
+            self.download_cover(url, &dest)?;
+        }
         self.copy_media(trip, steps)?;
         self.write_gallery_page(trip, steps)?;
         self.write_index(trip, steps, gps)?;
@@ -95,6 +99,24 @@ impl SiteGenerator {
             self.write_step_page(&trip, &steps[i], prev, next, steps.len())?;
         }
         tracing::info!("✅ Site généré dans {:?}", self.output_dir.join(&trip.slug));
+        Ok(())
+    }
+
+    fn download_cover(&self, url: &str, dest: &Path) -> Result<()> {
+        if dest.exists() {
+            return Ok(());
+        }
+
+        tracing::info!("    🖼️  Téléchargement cover : {}", url);
+        match ureq::get(url).call() {
+            Ok(response) => {
+                let bytes = response.into_body().read_to_vec()?;
+                fs::write(dest, bytes)?;
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Cover inaccessible (URL expirée ?) : {}", e);
+            }
+        }
         Ok(())
     }
 
@@ -145,8 +167,6 @@ impl SiteGenerator {
             })
             .unwrap_or((48.8566, 2.3522));
 
-        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
-
         let tmpl = self.env.get_template("trip.html")?;
         let html = tmpl.render(context! {
             trip     => trip,
@@ -156,7 +176,6 @@ impl SiteGenerator {
             gps_len  => gps.len(),
             first_lat => first_lat,
             first_lon => first_lon,
-            cover_url => cover_url,
         })?;
 
         fs::write(self.output_dir.join(&trip.slug).join("index.html"), html)?;
@@ -189,8 +208,6 @@ impl SiteGenerator {
                 format!("https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=13/{lat}/{lon}")
             });
 
-        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
-
         let tmpl = self.env.get_template("step.html")?;
         let html = tmpl.render(context! {
             trip        => trip,
@@ -203,7 +220,6 @@ impl SiteGenerator {
             map_link    => map_link,
             prev        => prev.map(make_nav),
             next        => next.map(make_nav),
-            cover_url   => cover_url,
             steps_len   => steps_len,
         })?;
 
@@ -218,13 +234,10 @@ impl SiteGenerator {
     }
 
     fn write_gallery_page(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
-        let cover_url = trip.cover_photo_path.as_deref().unwrap_or_default();
-
         let tmpl = self.env.get_template("gallery.html")?;
         let html = tmpl.render(context! {
             trip => trip,
             title => "Galerie",
-            cover_url => cover_url,
             steps => steps,
         })?;
 
@@ -311,7 +324,7 @@ impl SiteGenerator {
                 pb.inc(1);
                 Ok(())
             })?;
-        pb.finish_with_message("done");
+        pb.finish();
         Ok(())
     }
 }

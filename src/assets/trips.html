@@ -19,7 +19,7 @@
     {% for trip in trips %}
     <a class="trip-card" href="{{ trip.slug }}/index.html">
       {% if trip.cover_photo_path %}
-      <img src="{{ trip.cover_photo_path }}" alt="cover">
+      <img src="{{ trip.slug }}/cover.jpg" alt="cover">
       {% else %}
       <div class="trip-card-no-cover">🌍</div>
       {% endif %}

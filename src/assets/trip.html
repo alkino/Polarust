@@ -9,9 +9,7 @@
 </head>
 <body>
   <header>
-    {% if cover_url %}
-    <img class="cover" src="{{ cover_url }}" alt="cover">
-    {% endif %}
+    <img class="cover" src="cover.jpg" alt="cover">
     <div>
       <h1>🌍 {{ trip.name }}</h1>
       <p class="subtitle">{{ steps|length }} étapes</p>
