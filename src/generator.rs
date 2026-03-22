@@ -1,12 +1,12 @@
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use image::imageops::FilterType;
+use indicatif::{ProgressBar, ProgressStyle};
 use minijinja::{context, Environment};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::model::{EnrichedStep, GpsPoint, Media, MediaKind, Trip};
 
@@ -267,46 +267,50 @@ impl SiteGenerator {
 
         let total = all_media.len();
         let pb = ProgressBar::new(total as u64);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("    📷 Copying Media [{bar:40}] {pos}/{len}")?);
+        pb.set_style(
+            ProgressStyle::default_bar().template("    📷 Copying Media [{bar:40}] {pos}/{len}")?,
+        );
 
-        all_media.par_iter().try_for_each(|(es, media)| -> Result<()> {
-            let src_subdir = match media.kind {
-                MediaKind::Photo => "photos",
-                MediaKind::Video => "videos",
-            };
-            let src = self.archive_root
-                .join(&trip_key)
-                .join(&es.dir_name)
-                .join(src_subdir)
-                .join(&media.relative_path);
-            let dst = dst.join(&media.relative_path);
+        all_media
+            .par_iter()
+            .try_for_each(|(es, media)| -> Result<()> {
+                let src_subdir = match media.kind {
+                    MediaKind::Photo => "photos",
+                    MediaKind::Video => "videos",
+                };
+                let src = self
+                    .archive_root
+                    .join(&trip_key)
+                    .join(&es.dir_name)
+                    .join(src_subdir)
+                    .join(&media.relative_path);
+                let dst = dst.join(&media.relative_path);
 
-            if src.exists() {
-                if !dst.exists() {
-                    fs::copy(&src, &dst)?;
-                }
+                if src.exists() {
+                    if !dst.exists() {
+                        fs::copy(&src, &dst)?;
+                    }
 
-                if matches!(media.kind, MediaKind::Photo) {
-                    let thumb = thumb_dir.join(&media.relative_path);
-                    if !thumb.exists() {
-                        let data = fs::read(&src)?;
-                        let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
-                        let resized = image::DynamicImage::ImageRgb8(img).resize(
-                            400,
-                            300,
-                            FilterType::Triangle,
-                        );
-                        let rgb = resized.to_rgb8();
-                        let compressed =
-                            turbojpeg::compress_image(&rgb, 75, turbojpeg::Subsamp::Sub2x2)?;
-                        fs::write(&thumb, compressed)?;
+                    if matches!(media.kind, MediaKind::Photo) {
+                        let thumb = thumb_dir.join(&media.relative_path);
+                        if !thumb.exists() {
+                            let data = fs::read(&src)?;
+                            let img: image::RgbImage = turbojpeg::decompress_image(&data)?;
+                            let resized = image::DynamicImage::ImageRgb8(img).resize(
+                                400,
+                                300,
+                                FilterType::Triangle,
+                            );
+                            let rgb = resized.to_rgb8();
+                            let compressed =
+                                turbojpeg::compress_image(&rgb, 75, turbojpeg::Subsamp::Sub2x2)?;
+                            fs::write(&thumb, compressed)?;
+                        }
                     }
                 }
-            }
-            pb.inc(1);
-            Ok(())
-        })?;
+                pb.inc(1);
+                Ok(())
+            })?;
         pb.finish_with_message("done");
         Ok(())
     }

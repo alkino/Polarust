@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::{Path};
+use std::path::Path;
 
 use crate::model::{GpsPoint, LocationsFile, Trip};
 

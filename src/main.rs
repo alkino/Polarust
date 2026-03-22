@@ -1,7 +1,7 @@
+mod enricher;
 mod generator;
 mod model;
 mod parser;
-mod enricher;
 
 use anyhow::Result;
 use clap::Parser;
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
                     dir
                 );
                 t
-            },
+            }
             Err(e) => {
                 tracing::warn!("⚠️  Dossier {:?} ignoré : {}", dir, e);
                 continue;

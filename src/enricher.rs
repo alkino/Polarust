@@ -1,7 +1,7 @@
-use anyhow::{Result};
+use anyhow::Result;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 
 use crate::model::{EnrichedStep, Media, MediaKind, Step, Trip};
 
@@ -51,18 +51,19 @@ fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<Media> {
     }
     match fs::read_dir(&dir) {
         Ok(entries) => entries
-                .flatten()
-                .filter_map(|e| {
-                    Some(Media {
-                        kind,
-                        relative_path: e.path()
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("")
-                            .to_string(),
-                    })
+            .flatten()
+            .filter_map(|e| {
+                Some(Media {
+                    kind,
+                    relative_path: e
+                        .path()
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string(),
                 })
-                .collect(),
+            })
+            .collect(),
         Err(e) => {
             tracing::warn!("Impossible de lire {:?} : {}", dir, e);
             vec![]
@@ -82,7 +83,8 @@ fn scan_archive(archive_dir: &Path) -> HashMap<String, Vec<Media>> {
         if !path.is_dir() {
             continue;
         }
-        let dir_name = path.file_name()
+        let dir_name = path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("")
             .to_string();
