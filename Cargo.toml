@@ -16,3 +16,4 @@ image = "0.25"
 rayon = "1.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+indicatif = "0.18.4"

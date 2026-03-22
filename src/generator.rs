@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::model::{EnrichedStep, GpsPoint, Media, MediaKind, Trip};
 
@@ -255,7 +256,6 @@ impl SiteGenerator {
     }
 
     fn copy_media(&self, trip: &Trip, steps: &[EnrichedStep]) -> Result<()> {
-        tracing::info!("    📷 Copying media");
         let thumb_dir = self.output_dir.join(&trip.slug).join("thumbnails");
         let dst = self.output_dir.join(&trip.slug).join("media");
         let trip_key = format!("{}_{}", trip.slug, trip.id);
@@ -264,6 +264,11 @@ impl SiteGenerator {
             .iter()
             .flat_map(|es| es.media.iter().map(move |m| (es, m)))
             .collect();
+
+        let total = all_media.len();
+        let pb = ProgressBar::new(total as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("    📷 Copying Media [{bar:40}] {pos}/{len}")?);
 
         all_media.par_iter().try_for_each(|(es, media)| -> Result<()> {
             let src_subdir = match media.kind {
@@ -299,8 +304,10 @@ impl SiteGenerator {
                     }
                 }
             }
+            pb.inc(1);
             Ok(())
         })?;
+        pb.finish_with_message("done");
         Ok(())
     }
 }
