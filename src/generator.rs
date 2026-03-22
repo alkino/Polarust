@@ -44,23 +44,7 @@ pub struct SiteGenerator {
 impl SiteGenerator {
     pub fn new(output_dir: &Path, archive_root: &Path) -> Self {
         let mut env = Environment::new();
-        env.add_template(
-            "trips.html".into(),
-            include_str!("assets/trips.html").into(),
-        )
-        .unwrap();
-        env.add_template(
-            "trip.html".into(),
-            include_str!("assets/trip.html").into(),
-        )
-        .unwrap();
-        env.add_template("step.html".into(), include_str!("assets/step.html").into())
-            .unwrap();
-        env.add_template(
-            "gallery.html".into(),
-            include_str!("assets/gallery.html").into(),
-        )
-        .unwrap();
+        env.set_loader(minijinja::path_loader("src/assets"));
 
         // Register a filter to format timestamp in the template directly
         env.add_filter("format_date", |ts: i64| -> String {
