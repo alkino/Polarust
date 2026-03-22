@@ -8,13 +8,9 @@
 </head>
 <body>
   <header>
-    {% if cover_url %}
     <a href="../index.html">
-      <img class="cover" src="{{ cover_url }}" alt="cover">
+      <img class="cover" src="../cover.jpg" alt="cover">
     </a>
-    {% else %}
-    <a class="back" href="../index.html">← Retour au voyage</a>
-    {% endif %}
     <div class="header-titles">
       <div class="header-main">
         <h1>🌍 {{ trip.name }}</h1>
