@@ -52,7 +52,7 @@ fn get_media(dir: PathBuf, kind: MediaKind) -> Vec<(PathBuf, MediaKind)> {
     match fs::read_dir(&dir) {
         Ok(entries) => entries
                 .flatten()
-                .map(|e| (e.path(), kind.clone()))
+                .map(|e| (e.path(), kind))
                 .collect(),
         Err(e) => {
             tracing::warn!("Impossible de lire {:?} : {}", dir, e);

@@ -51,7 +51,7 @@ pub struct Location {
     pub country_code: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaKind {
     Photo,
