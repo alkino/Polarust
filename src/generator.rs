@@ -66,6 +66,9 @@ impl SiteGenerator {
     }
 
     pub fn generate_index(&self, all_trips: &[Trip]) -> Result<()> {
+        self.write_css()?;
+        self.write_js()?;
+
         let tmpl = self.env.get_template("trips.html")?;
         let html = tmpl.render(context! {
             trips => all_trips,
@@ -84,8 +87,6 @@ impl SiteGenerator {
         self.prepare_dirs(&trip)?;
         self.copy_media(trip, steps)?;
         self.write_gallery_page(trip, steps)?;
-        self.write_css()?;
-        self.write_js()?;
         self.write_index(trip, steps, gps)?;
         for i in 0..steps.len() {
             let prev = if i > 0 { steps.get(i - 1) } else { None };
