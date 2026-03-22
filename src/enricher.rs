@@ -1,6 +1,7 @@
 use anyhow::{Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use rayon::prelude::*;
 
 use crate::model::{EnrichedStep, Media, MediaKind, Step, Trip};
 
@@ -89,7 +90,7 @@ fn load_step_media(root: &Path) -> Vec<Media> {
 pub fn enrich_steps(archive_dir: &Path, trip: Trip) -> Result<(Trip, Vec<EnrichedStep>)> {
     let enriched = trip
         .steps
-        .iter()
+        .par_iter()
         .map(|step| {
             let dir_name = format!("{}_{}", step.slug, step.id);
             let media = load_step_media(&archive_dir.join(&dir_name));
