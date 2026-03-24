@@ -81,8 +81,6 @@ header h1 {
     display: flex;
     gap: 1.5rem;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
     padding: 1rem 2rem 1.5rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;

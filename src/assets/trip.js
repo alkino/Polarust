@@ -69,6 +69,14 @@ const observer = new IntersectionObserver((entries) => {
         threshold: 0.6
 });
 
+const carousel = document.getElementById('carousel');
+carousel.addEventListener('wheel', (e) => {
+        if (e.deltaY === 0) return;
+
+        carousel.scrollBy({ left: event.deltaY, behavior: 'instant' });
+        e.preventDefault();
+}, { passive: false });
+
 document.querySelectorAll('.card[data-step-id]').forEach(card => {
         observer.observe(card);
 });
