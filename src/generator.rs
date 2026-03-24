@@ -96,7 +96,7 @@ impl SiteGenerator {
         for i in 0..steps.len() {
             let prev = if i > 0 { steps.get(i - 1) } else { None };
             let next = steps.get(i + 1);
-            self.write_step_page(&trip, &steps[i], prev, next, steps.len())?;
+            self.write_step_page(&trip, i, &steps[i], prev, next, steps.len())?;
         }
         tracing::info!("✅ Site généré dans {:?}", self.output_dir.join(&trip.slug));
         Ok(())
@@ -185,6 +185,7 @@ impl SiteGenerator {
     fn write_step_page(
         &self,
         trip: &Trip,
+        i: usize,
         es: &EnrichedStep,
         prev: Option<&EnrichedStep>,
         next: Option<&EnrichedStep>,
@@ -211,6 +212,7 @@ impl SiteGenerator {
         let tmpl = self.env.get_template("step.html")?;
         let html = tmpl.render(context! {
             trip        => trip,
+            i           => i + 1,
             title       => es.step.display_name.as_deref().unwrap_or("Étape sans titre"),
             date        => es.step.start_time,
             location    => es.location,
