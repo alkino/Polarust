@@ -53,12 +53,6 @@ header h1 {
     margin-top: .2rem;
 }
 
-.back {
-    color: #aaa;
-    text-decoration: none;
-    font-size: .9rem;
-}
-
 .meta {
     color: #ccc;
     margin: .5rem 0;
@@ -370,19 +364,7 @@ main {
     transform: scale(1.05);
 }
 
-.gallery-caption {
-    position: absolute;
-    bottom: 0;
-    left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-    color: white;
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    opacity: 0;
-    transition: opacity .3s;
-}
-
-.gallery-item:hover .gallery-caption {
+.gallery-item:hover {
     opacity: 1;
 }
 
