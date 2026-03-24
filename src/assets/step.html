@@ -21,15 +21,33 @@
         <p class="meta">{{ date | format_date }}{% if location %} · {{ location }}{% endif %} · {{ weather }}</p>
       </div>
     </div>
+
+    <nav class="header-nav">
+      {% if prev %}
+      <a href="step_{{ prev.id }}.html" title="{{ prev.name }}">←</a>
+      {% else %}<span></span>{% endif %}
+      {% if next %}
+      <a href="step_{{ next.id }}.html" title="{{ next.name }}">→</a>
+      {% else %}<span></span>{% endif %}
+    </nav>
   </header>
 
   <nav class="step-nav">
     {% if prev %}
-    <a href="step_{{ prev.id }}.html">← {{ prev.name }}</a>
-    {% else %}<span></span>{% endif %}
+    <a href="step_{{ prev.id }}.html">
+      <span class="step-nav-arrow">←</span>
+      <span class="step-nav-label">{{ prev.name }}</span>
+    </a>
+    {% else %}<span class="step-nav-empty"></span>{% endif %}
+  
+    <span class="step-nav-current">{{ title }}</span>
+  
     {% if next %}
-    <a href="step_{{ next.id }}.html">{{ next.name }} →</a>
-    {% else %}<span></span>{% endif %}
+    <a href="step_{{ next.id }}.html">
+      <span class="step-nav-label">{{ next.name }}</span>
+      <span class="step-nav-arrow">→</span>
+    </a>
+    {% else %}<span class="step-nav-empty"></span>{% endif %}
   </nav>
 
   <main>
@@ -60,11 +78,20 @@
 
   <nav class="step-nav">
     {% if prev %}
-    <a href="step_{{ prev.id }}.html">← {{ prev.name }}</a>
-    {% else %}<span></span>{% endif %}
+    <a href="step_{{ prev.id }}.html">
+      <span class="step-nav-arrow">←</span>
+      <span class="step-nav-label">{{ prev.name }}</span>
+    </a>
+    {% else %}<span class="step-nav-empty"></span>{% endif %}
+  
+    <span class="step-nav-current">{{ title }}</span>
+  
     {% if next %}
-    <a href="step_{{ next.id }}.html">{{ next.name }} →</a>
-    {% else %}<span></span>{% endif %}
+    <a href="step_{{ next.id }}.html">
+      <span class="step-nav-label">{{ next.name }}</span>
+      <span class="step-nav-arrow">→</span>
+    </a>
+    {% else %}<span class="step-nav-empty"></span>{% endif %}
   </nav>
 
   {% if media %}
