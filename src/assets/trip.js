@@ -13,6 +13,7 @@ if (TRIP_DATA.gps_len > 0) {
 const markers = {};
 TRIP_DATA.markers.forEach(m => {
 markers[m.id] = L.marker([m.lat, m.lon], {
+        stepId: m.id,
         icon: L.divIcon({
                 className: '',
                 html: '<div class="map-marker"></div>',
@@ -31,6 +32,7 @@ Object.values(markers).forEach(marker => {
         marker.on('mouseover', function () {
                 clearTimeout(timeout);
                 this.openPopup();
+                scrollCarouselTo(this.options.stepId);
         });
         marker.on('mouseout', function() {
                 const popup = this.getPopup().getElement();
@@ -53,6 +55,13 @@ function closeMarker(id) {
 }
 function scrollCarousel(dir) {
         document.getElementById('carousel').scrollBy({ left: dir * 300, behavior: 'smooth' });
+}
+function scrollCarouselTo(markerId) {
+        const card = document.querySelector(`.card[data-step-id="${markerId}"]`);
+        if (!card) return;
+        const carousel = document.getElementById('carousel');
+        const offset = card.offsetLeft - (carousel.offsetWidth / 2) + (card.offsetWidth / 2);
+        carousel.scrollTo({ left: offset, behavior: 'smooth' });
 }
 
 const observer = new IntersectionObserver((entries) => {
